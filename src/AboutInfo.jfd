@@ -1,0 +1,27 @@
+JFDML JFormDesigner: "5.2.5.0.333" Java: "1.8.0_101" encoding: "UTF-8"
+
+new FormModel {
+	contentType: "form/swing"
+	root: new FormRoot {
+		add( new FormWindow( "javax.swing.JDialog", new FormLayoutManager( class javax.swing.BoxLayout ) {
+			"axis": 0
+		} ) {
+			name: "this"
+			add( new FormContainer( "javax.swing.JScrollPane", new FormLayoutManager( class javax.swing.JScrollPane ) ) {
+				name: "scrollPane1"
+				add( new FormComponent( "javax.swing.JLabel" ) {
+					name: "label1"
+					"text": "Created by Yurii Piets"
+					"horizontalTextPosition": 0
+					"maximumSize": new java.awt.Dimension( 300, 170 )
+					"minimumSize": new java.awt.Dimension( 300, 170 )
+					"preferredSize": new java.awt.Dimension( 300, 170 )
+					"horizontalAlignment": 0
+				} )
+			} )
+		}, new FormLayoutConstraints( null ) {
+			"location": new java.awt.Point( 0, 0 )
+			"size": new java.awt.Dimension( 400, 300 )
+		} )
+	}
+}
