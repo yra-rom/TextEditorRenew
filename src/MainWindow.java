@@ -6,40 +6,83 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.ArrayList;
+import java.io.*;
+import java.util.HashSet;
+import java.util.Set;
 
 @SuppressWarnings("MismatchedQueryAndUpdateOfStringBuilder")
 public class MainWindow extends JPanel {
-    private ArrayList<File> files = new ArrayList<>();
+    private Set<File> files = new HashSet<>();
     private  static int counterOfNewFiles = 0;
     private static JFrame frame;
+    private static int countNew = 0;
 
     public MainWindow() {
         initComponents();
     }
 
     private void miExitActionPerformed(ActionEvent e) {
-        //TODO ask Before exit
-        System.out.println("Exit");
+        saveAll();
+        System.exit(0);
     }
 
     private void miCloseActionPerformed(ActionEvent e) {
-        //TODO ask Before closing
-        System.out.println("Close");
+        if(tabbledPane.getTabCount() < 1){
+            return;
+        }
+
+        String name = tabbledPane.getTitleAt(tabbledPane.getSelectedIndex());
+        for(File file : files){
+            String n = file.getName();
+            if(n.equals(name)){
+                if(!noDiff(file)) {
+                    int answer = askForSave(file);
+                    if(answer == 0) { //Yes
+                        saveAsExistingFile(file);
+                        closeTab();
+                    }else if(answer == 1){ //No
+                        closeTab();
+                    }else if(answer == 2){//Cancel
+                    }
+                }
+            }
+        }
+
+        int answer = askForSave(name);
+
+        if(answer == 0) { //Yes
+            saveNewFile(name);
+            closeTab();
+        }else if(answer == 1){ //No
+            closeTab();
+        }else if(answer == 2){//Cancel
+        }
+    }
+
+    private void closeTab() {
+        tabbledPane.removeTabAt(tabbledPane.getSelectedIndex());
     }
 
     private void miSaveActionPerformed(ActionEvent e) {
-        //TODO way of saving file
-        System.out.println("Save");
+        if(tabbledPane.getTabCount() < 1){
+            return;
+        }
+        String name = tabbledPane.getTitleAt(tabbledPane.getSelectedIndex());
+        for(File file : files){
+            String n = file.getName();
+            if(n.equals(name)){
+                saveAsExistingFile(file);
+                return;
+            }
+        }
+        saveNewFile(name);
     }
 
     private void miSaveasActionPerformed(ActionEvent e) {
-        // TODO add your code here
-        System.out.println("Save as");
+        if(tabbledPane.getTabCount() < 1){
+            return;
+        }
+        saveNewFile("new_untitled" + countNew++);
     }
 
     private void miOpenActionPerformed(ActionEvent e) {
@@ -111,7 +154,7 @@ public class MainWindow extends JPanel {
         // JFormDesigner evaluation mark
         setBorder(new javax.swing.border.CompoundBorder(
             new javax.swing.border.TitledBorder(new javax.swing.border.EmptyBorder(0, 0, 0, 0),
-                "JFormDesigner Evaluation", javax.swing.border.TitledBorder.CENTER,
+                "", javax.swing.border.TitledBorder.CENTER,
                 javax.swing.border.TitledBorder.BOTTOM, new java.awt.Font("Dialog", java.awt.Font.BOLD, 12),
                 java.awt.Color.red), getBorder())); addPropertyChangeListener(new java.beans.PropertyChangeListener(){public void propertyChange(java.beans.PropertyChangeEvent e){if("border".equals(e.getPropertyName()))throw new RuntimeException();}});
 
@@ -184,6 +227,7 @@ public class MainWindow extends JPanel {
     // JFormDesigner - Variables declaration - DO NOT MODIFY  //GEN-BEGIN:variables
     // Generated using JFormDesigner Evaluation license - Yurii Piets
     private JMenuBar mnMain;
+
     private JMenu mFile;
     private JMenuItem miNew;
     private JMenuItem miOpen;
@@ -201,16 +245,15 @@ public class MainWindow extends JPanel {
         scrollPane.setViewportView(editorPane);
         return scrollPane;
     }
-
     public static void main(String[] args) {
         frame = new JFrame("Text Editor");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         frame.setContentPane(new MainWindow());
         frame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e){
-                //ask Before exit
-                System.out.println("Exit");
+                //TODO ask Before exit
+//                saveAll();
                 e.getWindow().dispose();
             }
         });
@@ -218,11 +261,45 @@ public class MainWindow extends JPanel {
         frame.setVisible(true);
     }
 
-    private void saveFile(){
+    private void saveAsExistingFile(File file) {
+        if(!noDiff(file)){
+            saveFile(file);
+        }
+    }
+
+    private void saveNewFile(String nameFile){
+        FileChooser chooser = new FileChooser();
+        chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+        File filePath = chooser.pick(nameFile);
+        if(filePath == null){
+            return;
+        }
+        files.add(filePath);
+
+        filePath.setReadable(true);
+        filePath.setWritable(true);
+
+        String path = filePath.getAbsolutePath();
+        File file = new File(path);
+        saveFile(file);
+    }
+
+    private void saveFile(File file){
         JScrollPane scroll = (JScrollPane) tabbledPane.getComponentAt(tabbledPane.getSelectedIndex());
         JViewport viewport = scroll.getViewport();
         JEditorPane  editor = (JEditorPane) viewport.getComponent(0);
         String text = editor.getText();// get text from text pane
+
+        try {
+            BufferedWriter bis = new BufferedWriter(new FileWriter(file));
+            bis.write("");
+            bis.write(text);
+            bis.flush();
+            bis.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        files.add(file);
     }
 
     private boolean noDiff(File file){
@@ -248,12 +325,43 @@ public class MainWindow extends JPanel {
         }
     }
 
-    private boolean noDiffForEach(){
-        for(File file : files){
-            if(!noDiff(file)) {
-                return false;
+    private void saveAll(){
+        for(int i = 0; i < tabbledPane.getTabCount(); ++i){
+            String name = tabbledPane.getTitleAt(i);
+            for(File file : files){
+                if(file.getName().equals(name)){
+                    int answer = askForSave(file);
+                    if(answer == 0) { //Yes
+                        saveAsExistingFile(file);
+                        closeTab();
+                    }else if(answer == 1){ //No
+                        closeTab();
+                    }else if(answer == 2){//Cancel
+                    }
+                    break;
+                }
             }
+
+            int answer = askForSave(name);
+            if(answer == 0) { //Yes
+                saveNewFile(name);
+                closeTab();
+            }else if(answer == 1){ //No
+                closeTab();
+            }else if(answer == 2){//Cancel
+            }
+            break;
         }
-        return true;
+    }
+
+    private int askForSave(File file){
+        return askForSave(file.getAbsoluteFile()+file.getName());
+    }
+
+    private int askForSave(String fileName){
+
+        int a = JOptionPane.showConfirmDialog(frame, "Do you want to save file \"" + fileName + "\"?", "Are you sure",JOptionPane.YES_NO_CANCEL_OPTION);
+        System.out.println(a);
+        return a;
     }
 }
